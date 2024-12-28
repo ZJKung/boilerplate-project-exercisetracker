@@ -23,6 +23,14 @@ mongoose
   .then(() => console.log("MongoDB connected"))
   .catch((err) => console.error("MongoDB connection error:", err));
 
+app.get("/api/users", async (req, res) => {
+  try {
+    const users = await User.find({}, "username _id");
+    res.json(users);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
 app.post("/api/users", async (req, res) => {
   try {
     const newUser = new User({ username: req.body.username });
@@ -58,7 +66,6 @@ app.post("/api/users/:_id/exercises", async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
-
 app.get("/api/users/:_id/logs", async (req, res) => {
   try {
     const userId = req.params._id;
@@ -69,12 +76,13 @@ app.get("/api/users/:_id/logs", async (req, res) => {
     let dateFilter = {};
     if (from) dateFilter.$gte = new Date(from);
     if (to) dateFilter.$lte = new Date(to);
-
-    const exercises = await Exercise.find({
-      userId,
-      date: dateFilter,
-    })
-      .limit(parseInt(limit))
+    console.log(dateFilter);
+    const queryFilter = { userId };
+    if (dateFilter.$gte || dateFilter.$lte) {
+      queryFilter.date = dateFilter;
+    }
+    const exercises = await Exercise.find(queryFilter)
+      .limit(parseInt(limit) || 0)
       .exec();
 
     res.json({
